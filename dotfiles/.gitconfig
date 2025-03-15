@@ -1,0 +1,9 @@
+# This is Git's per-user configuration file.
+[user]
+	name = Jesse Geens
+	email = jesse.geens@gmail.com
+[alias]
+	pf = push --force-with-lease
+	ca = commit --amend
+[core]
+	editor = vim

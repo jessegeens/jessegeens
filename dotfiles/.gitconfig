@@ -7,3 +7,7 @@
 	ca = commit --amend
 [core]
 	editor = vim
+[pull]
+	rebase = true
+[push]
+	autoSetupRemote = true

@@ -1,0 +1,7 @@
+# Debian GUI packages; skipped with --no-gui.
+# Thunderbird comes from Flathub on Debian/Ubuntu (Ubuntu only ships a snap)
+
+firefox
+kicad
+code
+flatpak

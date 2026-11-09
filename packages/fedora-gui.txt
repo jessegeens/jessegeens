@@ -1,0 +1,6 @@
+# Fedora GUI packages; skipped with --no-gui.
+firefox
+thunderbird
+kicad
+code
+flatpak

@@ -1,0 +1,38 @@
+# Fedora packages (dnf). One per line, '#' starts a comment.
+# zellij is not packaged: install.sh fetches the release binary.
+
+# Shell & terminal
+zsh
+zsh-syntax-highlighting
+fzf
+tmux
+htop
+
+# Editor
+neovim
+python3-neovim
+
+# CLI tools
+git
+gh
+ripgrep
+fd-find
+bat
+jq
+curl
+wget
+unzip
+tar
+xclip
+wl-clipboard
+sshuttle
+
+# Dev
+gcc
+gcc-c++
+make
+golang
+python3-pip
+
+# VPN
+tailscale

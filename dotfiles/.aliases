@@ -1,0 +1,5 @@
+# Shell aliases, sourced from ~/.zshrc.
+# TODO: replace with ~/.aliases from the laptop.
+
+# CERN tunnel
+alias tunnel="sudo sshuttle --dns -vr jgeens@lxtunnel.cern.ch 137.138.0.0/16 128.141.0.0/16 128.142.0.0/16 188.184.0.0/15 --pidfile /tmp/sshuttle.pid --python=python"

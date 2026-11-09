@@ -1,9 +1,10 @@
 # Fedora packages (dnf). One per line, '#' starts a comment.
 # zellij is not packaged: install.sh fetches the release binary.
+# Node.js and npm come from nvm (install.sh).
+# zsh-syntax-highlighting comes from install.sh as an oh-my-zsh plugin.
 
 # Shell & terminal
 zsh
-zsh-syntax-highlighting
 fzf
 tmux
 htop

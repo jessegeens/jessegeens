@@ -1,12 +1,13 @@
 # Debian/Ubuntu packages (apt). One per line, '#' starts a comment.
 # Not listed because the apt versions are too old or missing:
 #   neovim, fzf, zellij, go -> install.sh installs upstream releases.
+# Node.js and npm come from nvm (install.sh).
+# zsh-syntax-highlighting comes from install.sh as an oh-my-zsh plugin.
 # Debian names some binaries differently (fdfind, batcat);
 # install.sh links them as fd and bat in ~/.local/bin.
 
 # Shell & terminal
 zsh
-zsh-syntax-highlighting
 tmux
 htop
 

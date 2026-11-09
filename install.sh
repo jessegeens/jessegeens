@@ -28,7 +28,35 @@ DOTFILES=(
     .aliases
     .gitconfig
     .config/zellij
-    .config/nvim
+    # ~/.config/nvim is a clone of the NvChad starter (see install_nvim_config).
+    # Only the files that differ from the starter live in the repo.
+    .config/nvim/lua/chadrc.lua
+    .config/nvim/lazy-lock.json
+)
+
+NVCHAD_STARTER_URL=https://github.com/NvChad/starter.git
+NVCHAD_STARTER_REV=e3572e1f5e1c297212c3deeb17b7863139ce663e
+
+# oh-my-zsh plugins that don't ship with oh-my-zsh: "name git-url".
+# They are cloned into $ZSH_CUSTOM/plugins.
+OMZ_CUSTOM_PLUGINS=(
+    "zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git"
+)
+
+# LSP servers and formatters that the nvim config uses: "mason-package binary".
+# Neither distro packages them, so Mason installs them from upstream.
+NVIM_MASON_PKGS=(
+    "lua-language-server lua-language-server"
+    "html-lsp vscode-html-language-server"
+    "css-lsp vscode-css-language-server"
+    "stylua stylua"
+)
+
+# Directories (relative to $HOME) that the dotfiles expect to exist.
+# .claude-work, .claude-personal: CLAUDE_CONFIG_DIR of the claude-* aliases.
+HOME_DIRS=(
+    .claude-work
+    .claude-personal
 )
 
 WITH_GUI=1
@@ -235,7 +263,7 @@ debian_install_packages() {
 }
 
 # The apt versions of these are too old (e.g. `fzf --zsh` needs fzf >= 0.48,
-# and most nvim plugin managers need nvim >= 0.10).
+# and the nvim config needs nvim >= 0.11).
 debian_install_upstream() {
     # Check /opt/nvim rather than `have nvim`: python3-pynvim drags in the old
     # apt neovim. /usr/local/bin/nvim shadows it in PATH.
@@ -277,6 +305,32 @@ debian_install_upstream() {
 
 # --- common ------------------------------------------------------------------
 
+# Same location as in .zshrc.
+NVM_DIR="$HOME/.nvm"
+
+# Run an nvm command. nvm.sh doesn't work under `set -euo pipefail`.
+nvm_run() { NVM_DIR="$NVM_DIR" bash -c '. "$NVM_DIR/nvm.sh" && "$@"' _ "$@"; }
+
+# Node.js and npm come from nvm, not from the distro. Mason needs npm for
+# html-lsp and css-lsp. The first version nvm installs becomes its default.
+install_node() {
+    if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
+        log "Installing nvm (latest release) to $NVM_DIR"
+        # Clone instead of nvm's install script, which appends to ~/.zshrc.
+        git clone -q https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+        local tag
+        tag="$(git -C "$NVM_DIR" describe --abbrev=0 --tags --match 'v[0-9]*' \
+            "$(git -C "$NVM_DIR" rev-list --tags --max-count=1)")"
+        git -C "$NVM_DIR" checkout -q "$tag"
+    fi
+    if [[ "$(nvm_run nvm version default)" == N/A ]]; then
+        log "Installing Node.js LTS with nvm"
+        nvm_run nvm install --lts
+    fi
+    # Put node and npm on PATH for the rest of this script (Mason).
+    PATH="$(dirname "$(nvm_run nvm which default)"):$PATH"
+}
+
 install_zellij() {
     have zellij && return 0
     log "Installing zellij (latest release) to /usr/local/bin"
@@ -313,10 +367,65 @@ enable_services() {
 install_oh_my_zsh() {
     if [[ -d "$HOME/.oh-my-zsh" ]]; then
         log "oh-my-zsh already installed"
-        return
+    else
+        log "Installing oh-my-zsh"
+        git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.oh-my-zsh"
     fi
-    log "Installing oh-my-zsh"
-    git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.oh-my-zsh"
+
+    local custom="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}" entry plugin url
+    for entry in "${OMZ_CUSTOM_PLUGINS[@]}"; do
+        read -r plugin url <<<"$entry"
+        [[ -d "$custom/plugins/$plugin" ]] && continue
+        log "Installing oh-my-zsh plugin $plugin"
+        git clone --depth 1 "$url" "$custom/plugins/$plugin"
+    done
+}
+
+# Install the nvim plugins at the versions in lazy-lock.json, then the LSP
+# servers and formatters through Mason. Treesitter parsers compile on the
+# first interactive start.
+setup_neovim() {
+    have nvim || { warn "nvim not installed; skipping plugin setup"; return 0; }
+    [[ -f "$HOME/.config/nvim/init.lua" ]] || return 0
+
+    log "Installing Neovim plugins from lazy-lock.json"
+    nvim --headless "+Lazy! restore" +qa
+
+    local mason_bin="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/mason/bin"
+    local entry pkg bin missing=()
+    for entry in "${NVIM_MASON_PKGS[@]}"; do
+        read -r pkg bin <<<"$entry"
+        [[ -x "$mason_bin/$bin" ]] || missing+=("$pkg")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        log "Installing with Mason: ${missing[*]}"
+        nvim --headless "+MasonInstall ${missing[*]}" +qa
+    fi
+}
+
+# Clone the NvChad starter to ~/.config/nvim. link_dotfiles then links the
+# repo's changed files into it. An existing starter clone is left as it is.
+install_nvim_config() {
+    local dir="$HOME/.config/nvim" rel
+    # Older versions of this script linked the whole directory to the repo.
+    [[ -L "$dir" && "$(readlink "$dir")" == "$DOTFILES_DIR/.config/nvim" ]] && rm "$dir"
+
+    if [[ "$(git -C "$dir" remote get-url origin 2>/dev/null)" == "${NVCHAD_STARTER_URL%.git}"* ]]; then
+        return 0
+    fi
+    if [[ -e "$dir" || -L "$dir" ]]; then
+        mkdir -p "$BACKUP_DIR/.config"
+        mv "$dir" "$BACKUP_DIR/.config/nvim"
+        echo "    backup  ~/.config/nvim -> $BACKUP_DIR/.config/nvim"
+    fi
+    log "Cloning the NvChad starter to ~/.config/nvim"
+    git clone -q "$NVCHAD_STARTER_URL" "$dir"
+    git -C "$dir" checkout -q "$NVCHAD_STARTER_REV"
+    # Remove the stock copies of the files the repo replaces, so that
+    # link_dotfiles doesn't back them up.
+    for rel in "${DOTFILES[@]}"; do
+        [[ $rel == .config/nvim/* ]] && rm -f "$HOME/$rel"
+    done
 }
 
 link_dotfiles() {
@@ -342,6 +451,15 @@ link_dotfiles() {
         mkdir -p "$(dirname "$dst")"
         ln -s "$src" "$dst"
         echo "    linked  ~/$rel"
+    done
+}
+
+make_home_dirs() {
+    local rel
+    for rel in "${HOME_DIRS[@]}"; do
+        [[ -d "$HOME/$rel" ]] && continue
+        mkdir -p "$HOME/$rel"
+        echo "    created ~/$rel"
     done
 }
 
@@ -390,14 +508,20 @@ main() {
         esac
 
         install_zellij
+        install_node
         [[ $WITH_GUI -eq 1 ]] && install_flatpaks
         enable_services
     fi
 
     have git || die "git is required to install oh-my-zsh"
     install_oh_my_zsh
+    install_nvim_config
     link_dotfiles
-    [[ $DOTFILES_ONLY -eq 1 ]] || set_default_shell
+    make_home_dirs
+    if [[ $DOTFILES_ONLY -eq 0 ]]; then
+        setup_neovim
+        set_default_shell
+    fi
 
     log "Done!"
     [[ -d "$BACKUP_DIR" ]] && echo "    Replaced files were backed up to $BACKUP_DIR"

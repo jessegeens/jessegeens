@@ -1,0 +1,3 @@
+# Flathub app IDs, installed on every distro (skipped with --no-gui).
+org.signal.Signal
+md.obsidian.Obsidian

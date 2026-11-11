@@ -1,0 +1,2 @@
+# Extra Flathub apps on Debian/Ubuntu only (skipped with --no-gui).
+org.mozilla.Thunderbird

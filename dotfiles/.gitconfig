@@ -5,5 +5,13 @@
 [alias]
 	pf = push --force-with-lease
 	ca = commit --amend
+	commit-assisted = "!dir=~/.claude/projects/$(pwd | sed \"s/[^a-zA-Z0-9]/-/g\"); model=$(ls -t \"$dir\"/*.jsonl 2>/dev/null | xargs -r tac 2>/dev/null | grep -om1 \"\\\"model\\\":\\\"claude-[^\\\"]*\\\"\" | cut -d\\\" -f4) && [ -n \"$model\" ] && git commit --trailer \"Assisted-by: Claude:$model\""
 [core]
 	editor = vim
+[pull]
+	rebase = true
+[push]
+	autoSetupRemote = true
+# Machine-specific overrides (e.g. a work user.email). Not tracked; must stay last.
+[include]
+	path = ~/.gitconfig.local

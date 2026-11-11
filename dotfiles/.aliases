@@ -1,0 +1,8 @@
+alias aiadm="ssh aiadm.cern.ch"
+alias fix-signal="rm -rf \"/run/user/1000/app/org.signal.Signal/*\""
+alias nv=nvim
+alias tunnel='sshuttle --dns -vr jgeens@lxplus.cern.ch 137.138.0.0/16 128.141.0.0/16 128.142.0.0/16 188.184.0.0/15 --daemon --pidfile /tmp/sshuttle.pid && sudo systemctl restart systemd-resolved'
+alias lxp="ssh lxplus.cern.ch"
+alias claude-work='CLAUDE_CONFIG_DIR=$HOME/.claude-work claude'
+alias claude-personal='CLAUDE_CONFIG_DIR=$HOME/.claude-personal claude'
+alias vim=nvim
